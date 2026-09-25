@@ -1,7 +1,12 @@
-name: YouTube Live
+
+name: Live-1
 
 on:
   workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
 
 jobs:
   stream:
@@ -9,19 +14,16 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - name: Install FFmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python3 -m pip install gdown
 
-      - name: Download video
-        run: |
-          wget -O video.mp4 "https://drive.google.com/uc?export=download&id=1U17yK4g1Dxu25lZpvzNUKu6LHMdTDMzg"
+      - run: gdown --fuzzy "https://drive.google.com/file/d/1U17yK4g1Dxu25lZpvzNUKu6LHMdTDMzg/view?usp=sharing" -O video.mp4
 
-      - name: Stream to YouTube
+      - name: Stream
         env:
-          STREAM_KEY: ${{ secrets.YT_STREAM_KEY }}
+          KEY: ${{ secrets.YT_STREAM_KEY }}
         run: |
           ffmpeg -re -stream_loop -1 -i video.mp4 \
           -c:v libx264 -preset veryfast -pix_fmt yuv420p \
           -c:a aac -b:a 128k \
-          -f flv rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY
+          -f flv rtmp://a.rtmp.youtube.com/live2/$KEY
           
