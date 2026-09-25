@@ -2,13 +2,11 @@
 name: Live-2
 
 on:
-  workflow_run:
-    workflows: ["Live-1"]
-    types: [completed]
+  workflow_dispatch:
 
 permissions:
-  actions: write
   contents: read
+  actions: write
 
 jobs:
   stream:
@@ -16,13 +14,27 @@ jobs:
     timeout-minutes: 360
 
     steps:
-      - run: python3 -m pip install gdown
-      - run: gdown --fuzzy "https://drive.google.com/file/d/1U17yK4g1Dxu25lZpvzNUKu6LHMdTDMzg/view?usp=sharing" -O video.mp4
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg python3-pip coreutils
+          python3 -m pip install gdown
+
+      - run: gdown 1U17yK4g1Dxu25lZpvzNUKu6LHMdTDMzg -O video.mp4
+
       - env:
           KEY: ${{ secrets.YT_STREAM_KEY }}
         run: |
-          ffmpeg -re -stream_loop -1 -i video.mp4 \
-          -c:v libx264 -preset veryfast -pix_fmt yuv420p \
-          -c:a aac -b:a 128k \
-          -f flv rtmp://a.rtmp.youtube.com/live2/$KEY
+          timeout 21550 ffmpeg -re -stream_loop -1 -i video.mp4 \
+            -c:v libx264 -preset veryfast -pix_fmt yuv420p \
+            -c:a aac -b:a 128k \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/$KEY"
+
+      - env:
+          TOKEN: ${{ github.token }}
+        run: |
+          curl -X POST \
+          -H "Authorization: Bearer $TOKEN" \
+          -H "Accept: application/vnd.github+json" \
+          https://api.github.com/repos/${{ github.repository }}/actions/workflows/live3.yml/dispatches \
+          -d '{"ref":"main"}'
           
